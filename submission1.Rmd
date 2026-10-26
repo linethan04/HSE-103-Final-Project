@@ -115,7 +115,7 @@ setequal(ptx3$geoID, covar_clean$geoID)
 analysis_df <- covar_clean |> 
   inner_join(ptx3, by = "geoID")
 
-# Should be 157 rows: one per sample, none lost or duplicated
+# 157 rows: one per sample, none lost or duplicated
 nrow(analysis_df)
 
 n_distinct(analysis_df$geoID)
@@ -142,21 +142,30 @@ theme_pub <- theme_classic(base_size = 14) +
         legend.position = "top",
         legend.title = element_text(face = "bold"))
 
+# shared colors
 outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
 ```
 
 ### Histogram of PTX3 gene expression
 ```{r histogram}
 hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
-  geom_histogram(binwidth = 0.05, fill = "#3A7D7C", color = "white",
+  # creating the histogram
+  geom_histogram(binwidth = 0.05, 
+                 fill = "#3A7D7C", 
+                 color = "white",
                  linewidth = 0.3) +
+  # median used instead of mean because robust to right tail
+  # want to show where median is in the distribution
   geom_vline(aes(xintercept = median(PTX3_exp)),
              linetype = "dashed", color = "#1F2A37", linewidth = 0.6) +
+  # leave some headroom above the tallest bar, 5%
   scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +  
+  # Titles and axis labels
   labs(title = "Distribution of PTX3 Expression",
        x = "PTX3 expression (log2 intensity)",
        y = "Number of samples",
        caption = "Dashed line = median; n = 157") +
+  # apply shared publication theme across all 3 figures
   theme_pub
 
 hist
@@ -172,6 +181,7 @@ hist
 ### Scatterplot comparing vitamin D vs. PTX3 gene expression
 ```{r scatter}
 scatter <- ggplot(analysis_df, aes(x = mat_vitD, y = PTX3_exp)) +
+  # plot each sample as a point, adjusting for transparency and size of point
   geom_point(aes(color = preg_preeclampsia), 
              alpha = 0.7, 
              size = 2.5) +
@@ -179,6 +189,7 @@ scatter <- ggplot(analysis_df, aes(x = mat_vitD, y = PTX3_exp)) +
   geom_smooth(method = "lm", 
               color = "black", 
               se = TRUE) +  
+  # so colors are same in every figure
   scale_color_manual(values = outcome_colors) +
   labs(title = "Maternal Vitamin D vs PTX3 Expression",
        x = "Maternal 25(OH)D at baseline (ng/mL)",
@@ -202,12 +213,18 @@ scatter
 ```{r boxplot}
 box <- ggplot(analysis_df, aes(x = vitD_status, y = PTX3_exp, 
                                  fill = preg_preeclampsia)) +
+  # position_dodge makes Normal and Preeclampsia boxes side by side
   geom_boxplot(outlier.shape = NA, 
                alpha = 0.8,
                position = position_dodge(width = 0.8)) +
-  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.8),
+  # Overlay individual samples so can see group sizes directly
+  # position_jitterdodge so it spread points horizontally to reduce overlap
+  # lines them up witoh their matching box using dodge = 0.8
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, 
+                                             dodge.width = 0.8),
              size = 1.2, 
              alpha = 0.6) +
+  # same colors for consistency
   scale_fill_manual(values = outcome_colors) +
   labs(title = "PTX3 Expression by Vitamin D Status and Outcome",
        x = "Maternal vitamin D status (ng/mL)",
