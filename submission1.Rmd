@@ -14,10 +14,10 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ## Variables of Interest
 
-- **Gene:** *PTX3* (pentraxin 3), an inflammatory marker previously linked to preeclampsia
-- **Continuous covariate:** maternal baseline 25-hydroxyvitamin D (ng/mL)
-- **Categorical covariate 1:** pregnancy outcome (Normal vs Preeclampsia)
-- **Categorical covariate 2 (derived from a continuous variable):** vitamin D status from `mat_vitD`
+- **Chosen Gene:** *PTX3* (pentraxin 3), an inflammatory marker previously linked to preeclampsia ()
+- **Continuous covariate:** maternal baseline 25-hydroxyvitamin D (ng/mL) (mat_vitID)
+- **Categorical covariate 1:** pregnancy outcome (Normal vs Preeclampsia) (pre_preeclampsia)
+- **Categorical covariate 2 (derived from a continuous variable):** vitamin D status from `mat_vitD` (vitD_status)
   (Deficient < 20, Insufficient 20–29.9, Sufficient ≥ 30 ng/mL)
   
 ```{r packages, results = "hide"}
@@ -81,6 +81,7 @@ covar_clean <- covar |>
 
 summary(covar_clean)
 count(covar_clean, preg_preeclampsia, vitD_status)
+
 ```
 
 ### Attach gene names using left_join; matching gene names
@@ -147,21 +148,22 @@ outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
 ### Histogram of PTX3 gene expression
 ```{r histogram}
 hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
-  geom_histogram(binwidth = 0.1, fill = "grey60", color = "white") +
-  geom_vline(aes(xintercept = median(PTX3_exp)), linetype = "dashed") +
+  geom_histogram(binwidth = 0.05, fill = "#3A7D7C", color = "white",
+                 linewidth = 0.3) +
+  geom_vline(aes(xintercept = median(PTX3_exp)),
+             linetype = "dashed", color = "#1F2A37", linewidth = 0.6) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +  
   labs(title = "Distribution of PTX3 Expression",
        x = "PTX3 expression (log2 intensity)",
        y = "Number of samples",
        caption = "Dashed line = median; n = 157") +
   theme_pub
 
-hist
-
 # save in figures folder so don't need to regenerate again
 # ggsave("figures/histogram_PTX3.png",
-#        hist, 
-#        width = 7, 
-#        height = 5, 
+#        hist,
+#        width = 7,
+#        height = 5,
 #        dpi = 300)
 ```
 
