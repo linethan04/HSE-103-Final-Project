@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
   (Deficient < 20, Insufficient 20–29.9, Sufficient ≥ 30 ng/mL)
   
 ```{r packages}
-# loading tidyverse library!\
+# loading tidyverse library
 library(tidyverse)
 ```
 
@@ -26,18 +26,134 @@ library(tidyverse)
 
 ```{r load}
 covar <- read_csv("data/GSE85307_covar-1.csv")
-expr <- read_csv("data/GSE85307_geneExpression.csv")
+exp <- read_csv("data/GSE85307_geneExpression.csv")
 geneNames <- read_csv("data/GSE85307_geneNames.csv")
 
 # Quick look at each file
 glimpse(covar)
-dim(expr)        # 500 probes (rows) with 157 samples (+ 1 additional probe ID column)
+dim(exp) # 500 probes (rows) with 157 samples (+ 1 additional probe ID column)
 head(geneNames)
 ```
 
+## Data Cleaning
+
 ### Cleaning the covariate data
 
-Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so we keep only the part
+Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so keep only the part
 after `": "` and convert numbers to numeric.
 
-test2
+```{r clean-covar}
+covar_clean <- covar |> 
+  # Rename first column name by position
+  rename(subjectID = 1) |> 
+  # For every column except the IDs, keep only the text after ": "; consulted
+  # the help of Claude for this step to help with str_removal, detecting patterns
+  mutate(across(-c(subjectID, geoID),
+                ~ str_remove(.x, "^.*: "))) |> 
+  # Convert the continuous variables from text to numeric
+  mutate(across(c(mat_age_yrs, 
+                  delivery_gestAge_wks, 
+                  sampleCollection_gestAge_wks,
+                  mat_BMI, 
+                  mat_vitD), 
+                as.numeric)) |> 
+  mutate(
+    # Pregnancy outcome as a factor, with normal and preeclampsia levels
+    preg_preeclampsia = factor(preg_preeclampsia, 
+                               levels = c("Normal", "Preeclampsia")),
+    # Turn asthma into a labeled factor, either 0 or 1
+    mat_asthma = factor(mat_asthma, 
+                        levels = c("0", "1"), 
+                        labels = c("Healthy", "Asthma")),
+    # convert to factor variable
+    batch_Microarray = factor(batch_Microarray),
+    # turn continuous mat_vitD to categorical vitD_status variable
+    vitD_status = cut(mat_vitD,
+                      breaks = c(-Inf, 20, 30, Inf),
+                      right  = FALSE,   # intervals are [low, high)
+                      labels = c("Deficient (<20)", 
+                                 "Insufficient (20-29.9)", 
+                                 "Sufficient (30+)"))
+  )
+
+summary(covar_clean)
+count(covar_clean, preg_preeclampsia, vitD_status)
+```
+
+### Attach gene names using left_join; matching gene names
+```{r gene}
+exp_named <- exp |> 
+  # PROBE-ID column has no header, so rename it
+  rename(PROBEID = 1) |> 
+  # add the gene column
+  left_join(geneNames, by = "PROBEID") |>    
+  relocate(GENE, .after = PROBEID)
+
+# Check that every probe matched a gene name and there are no duplicate genes
+sum(is.na(exp_named$GENE))
+any(duplicated(exp_named$GENE))
+
+# Keep only PTX3, change from wide to long format
+ptx3 <- exp_named |> 
+  filter(GENE == "PTX3") |> 
+  pivot_longer(cols = starts_with("GSM"),
+               names_to  = "geoID",
+               values_to = "PTX3_exp")
+
+head(ptx3)
+```
+
+### Combine covariate data with gene expression data using geoID
+```{r merge}
+# Check that the sample IDs are the same set in both files before joining
+setequal(ptx3$geoID, covar_clean$geoID)
+
+analysis_df <- covar_clean |> 
+  inner_join(ptx3, by = "geoID")
+
+# Should be 157 rows: one per sample, none lost or duplicated
+nrow(analysis_df)
+
+n_distinct(analysis_df$geoID)
+
+# Spot-check one sample against the raw expression file
+analysis_df |>  
+  filter(geoID == "GSM2264346") |>  
+  pull(PTX3_exp)
+
+exp |> 
+  rename(PROBEID = 1) |>  
+  filter(PROBEID == 8083594) |> 
+  pull(GSM2264346)
+```
+
+## Submission 1 Plots
+
+### Shared Theme
+```{r theme}
+# One theme for consistency across all plots
+theme_pub <- theme_classic(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(face = "bold"))
+
+outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
+```
+
+### Histogram of PTX3 gene expression
+```{r histogram}
+p_hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
+  geom_histogram(binwidth = 0.1, fill = "grey60", color = "white") +
+  geom_vline(aes(xintercept = median(PTX3_exp)), linetype = "dashed") +
+  labs(title = "Distribution of PTX3 Expression",
+       x = "PTX3 expression (log2 intensity)",
+       y = "Number of samples",
+       caption = "Dashed line = median; n = 157") +
+  theme_pub
+
+p_hist
+ggsave("figures/histogram_PTX3.png", p_hist, width = 7, height = 5, dpi = 300)
+```
+
+### Scatterplot comparing vitamin D vs. PTX3 gene expression
