@@ -1,0 +1,42 @@
+---
+title: "submission1"
+output: pdf_document
+date: "2026-10-26"
+author: Ethan Lin
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Variables of Interest
+
+- **Gene:** *PTX3* (pentraxin 3), an inflammatory marker previously linked to preeclampsia
+- **Continuous covariate:** maternal baseline 25-hydroxyvitamin D (ng/mL)
+- **Categorical covariate 1:** pregnancy outcome (Normal vs Preeclampsia)
+- **Categorical covariate 2 (derived from a continuous variable):** vitamin D status from `mat_vitD`
+  (Deficient < 20, Insufficient 20–29.9, Sufficient ≥ 30 ng/mL)
+  
+```{r packages}
+# loading tidyverse library!\
+library(tidyverse)
+```
+
+### Load the raw files
+
+```{r load}
+covar <- read_csv("data/GSE85307_covar-1.csv")
+expr <- read_csv("data/GSE85307_geneExpression.csv")
+geneNames <- read_csv("data/GSE85307_geneNames.csv")
+
+# Quick look at each file
+glimpse(covar)
+dim(expr)        # 500 probes (rows) with 157 samples (+ 1 additional probe ID column)
+head(geneNames)
+```
+
+### Cleaning the covariate data
+
+Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so we keep only the part
+after `": "` and convert numbers to numeric.
+
