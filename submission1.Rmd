@@ -183,3 +183,29 @@ ggsave("figures/scatter_vitD_PTX3.png",
        dpi = 300)
 
 ```
+
+### 8. Boxplot of PTX3 by vitamin D status and pregnancy outcome
+
+```{r boxplot}
+box <- ggplot(analysis_df, aes(x = vitD_status, y = PTX3_exp, 
+                                 fill = preg_preeclampsia)) +
+  geom_boxplot(outlier.shape = NA, 
+               alpha = 0.8,
+               position = position_dodge(width = 0.8)) +
+  geom_point(position = position_jitterdodge(jitter.width = 0.15, dodge.width = 0.8),
+             size = 1.2, 
+             alpha = 0.6) +
+  scale_fill_manual(values = outcome_colors) +
+  labs(title = "PTX3 Expression by Vitamin D Status and Outcome",
+       x = "Maternal vitamin D status (ng/mL)",
+       y = "PTX3 expression (log2 intensity)",
+       fill = "Pregnancy outcome") +
+  theme_pub
+
+box
+ggsave("figures/boxplot_PTX3_vitD_outcome.png", 
+       box, 
+       width = 8, 
+       height = 5, 
+       dpi = 300)
+```
