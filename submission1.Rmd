@@ -1,12 +1,15 @@
 ---
-title: "submission1"
-output: pdf_document
+title: "Submission 1: PTX3 Expression, Vitamin D and Preeclampsia (GSE85307)"
+output: 
+  pdf_document:
+      latex_engine: xelatex
+  
 date: "2026-10-26"
 author: Ethan Lin
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 ## Variables of Interest
@@ -17,14 +20,14 @@ knitr::opts_chunk$set(echo = TRUE)
 - **Categorical covariate 2 (derived from a continuous variable):** vitamin D status from `mat_vitD`
   (Deficient < 20, Insufficient 20–29.9, Sufficient ≥ 30 ng/mL)
   
-```{r packages}
+```{r packages, results = "hide"}
 # loading tidyverse library
 library(tidyverse)
 ```
 
 ### Load the raw files
 
-```{r load}
+```{r load, results = "hide"}
 covar <- read_csv("data/GSE85307_covar-1.csv")
 exp <- read_csv("data/GSE85307_geneExpression.csv")
 geneNames <- read_csv("data/GSE85307_geneNames.csv")
@@ -42,7 +45,7 @@ head(geneNames)
 Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so keep only the part
 after `": "` and convert numbers to numeric.
 
-```{r clean-covar}
+```{r clean-covar, results = "hide"}
 covar_clean <- covar |> 
   # Rename first column name by position
   rename(subjectID = 1) |> 
@@ -81,7 +84,7 @@ count(covar_clean, preg_preeclampsia, vitD_status)
 ```
 
 ### Attach gene names using left_join; matching gene names
-```{r gene}
+```{r gene, results = "hide"}
 exp_named <- exp |> 
   # PROBE-ID column has no header, so rename it
   rename(PROBEID = 1) |> 
@@ -104,7 +107,7 @@ head(ptx3)
 ```
 
 ### Combine covariate data with gene expression data using geoID
-```{r merge}
+```{r merge, results = "hide"}
 # Check that the sample IDs are the same set in both files before joining
 setequal(ptx3$geoID, covar_clean$geoID)
 
@@ -130,8 +133,8 @@ exp |>
 ## Submission 1 Plots
 
 ### Shared Theme
-```{r theme}
-# One theme for consistency across all plots
+```{r theme, results = "hide"}
+# One theme for consistency across all plots; publication quality
 theme_pub <- theme_classic(base_size = 14) +
   theme(plot.title = element_text(face = "bold", hjust = 0.5),
         axis.title = element_text(face = "bold"),
@@ -143,7 +146,7 @@ outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
 
 ### Histogram of PTX3 gene expression
 ```{r histogram}
-p_hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
+hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
   geom_histogram(binwidth = 0.1, fill = "grey60", color = "white") +
   geom_vline(aes(xintercept = median(PTX3_exp)), linetype = "dashed") +
   labs(title = "Distribution of PTX3 Expression",
@@ -152,8 +155,14 @@ p_hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
        caption = "Dashed line = median; n = 157") +
   theme_pub
 
-p_hist
-ggsave("figures/histogram_PTX3.png", p_hist, width = 7, height = 5, dpi = 300)
+hist
+
+# save in figures folder so don't need to regenerate again
+# ggsave("figures/histogram_PTX3.png",
+#        hist, 
+#        width = 7, 
+#        height = 5, 
+#        dpi = 300)
 ```
 
 ### Scatterplot comparing vitamin D vs. PTX3 gene expression
@@ -176,11 +185,11 @@ scatter <- ggplot(analysis_df, aes(x = mat_vitD, y = PTX3_exp)) +
 scatter
 
 # save in figures folder so don't need to regenerate again
-ggsave("figures/scatter_vitD_PTX3.png", 
-       scatter, 
-       width = 7, 
-       height = 5, 
-       dpi = 300)
+# ggsave("figures/scatter_vitD_PTX3.png", 
+#        scatter, 
+#        width = 7, 
+#        height = 5, 
+#        dpi = 300)
 
 ```
 
@@ -203,9 +212,13 @@ box <- ggplot(analysis_df, aes(x = vitD_status, y = PTX3_exp,
   theme_pub
 
 box
-ggsave("figures/boxplot_PTX3_vitD_outcome.png", 
-       box, 
-       width = 8, 
-       height = 5, 
-       dpi = 300)
+
+# save in figures folder so don't need to regenerate again
+# ggsave("figures/boxplot_PTX3_vitD_outcome.png", 
+#        box, 
+#        width = 7, 
+#        height = 5, 
+#        dpi = 300)
 ```
+
+
