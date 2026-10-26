@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ## Variables of Interest
 
-- **Chosen Gene:** *PTX3* (pentraxin 3), an inflammatory marker previously linked to preeclampsia ()
+- **Chosen Gene:** *PTX3* (pentraxin 3), an inflammatory marker previously linked to preeclampsia (Reference: 2)
 - **Continuous covariate:** maternal baseline 25-hydroxyvitamin D (ng/mL) (mat_vitID)
 - **Categorical covariate 1:** pregnancy outcome (Normal vs Preeclampsia) (pre_preeclampsia)
 - **Categorical covariate 2 (derived from a continuous variable):** vitamin D status from `mat_vitD` (vitD_status)
@@ -159,6 +159,8 @@ hist <- ggplot(analysis_df, aes(x = PTX3_exp)) +
        caption = "Dashed line = median; n = 157") +
   theme_pub
 
+hist
+
 # save in figures folder so don't need to regenerate again
 # ggsave("figures/histogram_PTX3.png",
 #        hist,
@@ -223,4 +225,19 @@ box
 #        dpi = 300)
 ```
 
+## References
 
+1. Mirzakhani H, Litonjua AA, McElrath TF, et al. Early pregnancy vitamin D
+   status and risk of preeclampsia. *J Clin Invest.* 2016;126(12):4702–4715.
+   doi:10.1172/JCI89031. (Data source: GEO accession GSE85307.)
+
+2. Xiong Z, Wang X, Jiang S, Jin M, Chen W. Association between pentraxin-3 and
+   the risk of preeclampsia: a meta-analysis. *Medicine (Baltimore).*
+   2020;99(26):e20744. doi:10.1097/MD.0000000000020744
+
+3. Anthropic. Claude (Opus 5.5) [Large language model]. 2026.
+   https://claude.ai. Accessed October 25–26, 2026.
+
+**AI use statement:** Claude (Anthropic) was used to help with str_removal for initial data cleaning and some GitHub debugging issues at initial setup. Also consulted Claude for debugging help during data cleaning.
+
+Searched up different geom_ function via Google for help making the figures look nicer.
