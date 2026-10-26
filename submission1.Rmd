@@ -157,3 +157,29 @@ ggsave("figures/histogram_PTX3.png", p_hist, width = 7, height = 5, dpi = 300)
 ```
 
 ### Scatterplot comparing vitamin D vs. PTX3 gene expression
+```{r scatter}
+scatter <- ggplot(analysis_df, aes(x = mat_vitD, y = PTX3_exp)) +
+  geom_point(aes(color = preg_preeclampsia), 
+             alpha = 0.7, 
+             size = 2.5) +
+   # overall linear trend + 95% CI
+  geom_smooth(method = "lm", 
+              color = "black", 
+              se = TRUE) +  
+  scale_color_manual(values = outcome_colors) +
+  labs(title = "Maternal Vitamin D vs PTX3 Expression",
+       x = "Maternal 25(OH)D at baseline (ng/mL)",
+       y = "PTX3 expression (log2 intensity)",
+       color = "Pregnancy outcome") +
+  theme_pub
+
+scatter
+
+# save in figures folder so don't need to regenerate again
+ggsave("figures/scatter_vitD_PTX3.png", 
+       scatter, 
+       width = 7, 
+       height = 5, 
+       dpi = 300)
+
+```
