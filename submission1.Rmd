@@ -71,9 +71,11 @@ covar_clean <- covar |>
     # convert to factor variable
     batch_Microarray = factor(batch_Microarray),
     # turn continuous mat_vitD to categorical vitD_status variable
+    # chose the intervals and cutoffs based off of existing clinical studies
+    # and standard medical practices
     vitD_status = cut(mat_vitD,
                       breaks = c(-Inf, 20, 30, Inf),
-                      right  = FALSE,   # intervals are [low, high)
+                      right  = FALSE,   
                       labels = c("Deficient (<20)", 
                                  "Insufficient (20-29.9)", 
                                  "Sufficient (30+)"))
