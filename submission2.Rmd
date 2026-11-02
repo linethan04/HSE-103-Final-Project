@@ -36,8 +36,7 @@ geneNames <- read_csv("data/GSE85307_geneNames.csv")
 
 ## 2. Clean the covariate data (same steps as Submission 1)
 
-Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so keep only the part
-after `": "` and convert numbers to numeric.
+Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so keep only the part after `": "` and convert numbers to numeric.
 
 ```{r clean-covar, results = "hide"}
 covar_clean <- covar |> 
@@ -81,8 +80,7 @@ count(covar_clean, preg_preeclampsia, vitD_status)
 
 ## 3. Build a long data frame with all of the genes
 
-Unlike Submission 1 (one gene), the function needs a data frame that holds every
-gene, so it can pull out whichever genes it is given.
+Unlike Submission 1 (one gene), the function needs a data frame that holds every gene, so it can pull out whichever genes it is given.
 
 ```{r long-data, results = "hide"}
 expr_long <- expr |> 
@@ -141,4 +139,117 @@ theme_pub <- theme_classic(base_size = 14) +
 # shared colors
 outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
 ```
+
+## 6. Plotting function
+
+plot_genes() function takes the following inputs: a data frame and a vector of one or more gene names. For each gene it loops through, it makes the three Submission 1 plots (histogram, scatterplot vs vitamin D, boxplot by vitamin D status and outcome), prints them, optionally saves them, and returns them in a named list.
+
+```{r function}
+# takes the input of a data frame, a vector of genes, into the figures directory
+plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
+
+  # First initialize an empty list
+  all_plots <- list()
+
+  # Loop through each gene provided and produce the plots (huge for loop!)
+  for (gene in genes) {
+    
+    # Keep only this gene's rows (one row per sample)
+    # rename input data frame as gene_df
+    gene_df <- df |>  
+      filter(GENE == gene)
+    # Axis label reused by all three plots
+    y_lab <- paste(gene, "expression (log2 intensity)")
+    
+    # Plot 1: histogram showing distribution of expression; essentially same
+    # code as submission 1
+    p_hist <- ggplot(gene_df, aes(x = expression)) +
+      # 0.05-wide bins suit the narrow range of log2 expression values
+      geom_histogram(binwidth = 0.05, fill = "#3A7D7C", color = "white",
+                     linewidth = 0.3) +
+      # Dashed line at the median as a reference point
+      geom_vline(aes(xintercept = median(expression)),
+                 linetype = "dashed", color = "#1F2A37", linewidth = 0.6) +
+      # Bars sit directly on the x-axis, with some space on top
+      scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+      labs(title = paste("Distribution of", gene, "Expression"),
+           x = y_lab,
+           y = "Number of samples",
+           caption = paste0("Dashed line = median; n = ", nrow(gene_df))) +
+      theme_pub
+
+    # Once again same thing but for plot 2: scatterplot of vitamin D 
+    # vs expression. same code as submission 1, just changing the inputs.
+    p_scatter <- ggplot(gene_df, aes(x = mat_vitD, y = expression)) +
+      # One point per woman, colored by outcome
+      geom_point(aes(color = preg_preeclampsia), alpha = 0.7, size = 2.5) +
+      # Overall linear trend with 95% confidence band
+      geom_smooth(method = "lm", color = "black", se = TRUE) +
+      scale_color_manual(values = outcome_colors) +
+      labs(title = paste("Maternal Vitamin D vs", gene, "Expression"),
+           x = "Maternal 25(OH)D at baseline (ng/mL)",
+           y = y_lab,
+           color = "Pregnancy outcome") +
+      theme_pub
+
+    # Same thing again, but for plot 3: boxplot by both categorical variables
+    p_box <- ggplot(gene_df, aes(x = vitD_status, y = expression,
+                                 fill = preg_preeclampsia)) +
+      # Boxes side by side for each outcome; hide outliers because
+      # all points are drawn below
+      geom_boxplot(outlier.shape = NA, alpha = 0.8,
+                   position = position_dodge(width = 0.8)) +
+      # Individual women, jittered sideways and aligned with their box
+      geom_point(position = position_jitterdodge(jitter.width = 0.15,
+                                                 dodge.width  = 0.8),
+                 size = 1.2, alpha = 0.6) +
+      scale_fill_manual(values = outcome_colors) +
+      # edit in that particular looped gene
+      labs(title = paste(gene, "Expression by Vitamin D Status and Outcome"),
+           x = "Maternal vitamin D status (ng/mL)",
+           y = y_lab,
+           fill = "Pregnancy outcome") +
+      theme_pub
+
+    # Print all three plots so they appear in the knitted document
+    print(p_hist)
+    print(p_scatter)
+    print(p_box)
+
+    # Save the plots named by gene if save is set to TRUE, the default input
+    # is that save is set as FALSE initially; this is optional, that way doesn't
+    # continuously rewrite plots each time functino is run
+    if (save) {
+      ggsave(file.path(out_dir, paste0("histogram_", gene, ".png")),
+             p_hist, width = 7, height = 5, dpi = 300)
+      ggsave(file.path(out_dir, paste0("scatter_vitD_", gene, ".png")),
+             p_scatter, width = 7, height = 5, dpi = 300)
+      ggsave(file.path(out_dir, paste0("boxplot_vitD_outcome_", gene, ".png")),
+             p_box, width = 8, height = 5, dpi = 300)
+    }
+
+    # Store this gene's plots in the list under the gene's name
+    # This way when the loop finishes you can pull out any single plot later
+    # without rerunning the function
+    all_plots[[gene]] <- list(histogram = p_hist,
+                              scatter   = p_scatter,
+                              boxplot   = p_box)
+  }
+}
+```
+
+## 7. Run the function on three genes
+
+```{r run-function, fig.height = 5}
+genes_of_interest <- c("PTX3", "CXCR2", "RUNDC3A")
+
+# Set save = TRUE to save the 9 figures in figures folder
+# Set save = FALSE in final pdf/markdown because don't want to keep running
+# this over and over
+gene_plots <- plot_genes(analysis_long, genes_of_interest, save = FALSE)
+```
+
+
+
+
 
