@@ -80,7 +80,7 @@ count(covar_clean, preg_preeclampsia, vitD_status)
 
 ## 3. Build a long data frame with all of the genes
 
-Unlike Submission 1 (one gene), the function needs a data frame that holds every gene, so it can pull out whichever genes it is given.
+Building a data frame that holds every gene, because the function needs a data frame, so it can pull out whichever genes it is given.
 
 ```{r long-data, results = "hide"}
 expr_long <- expr |> 
@@ -103,7 +103,7 @@ expr_long |>
 ```
 
 ## 4. Merge with covariates and verify the match
-```{r merge}
+```{r merge, results = "hide"}
 # check if set of sample IDs in both files?
 setequal(unique(expr_long$geoID), covar_clean$geoID)
 
@@ -142,7 +142,7 @@ outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
 
 ## 6. Plotting function
 
-plot_genes() function takes the following inputs: a data frame and a vector of one or more gene names. For each gene it loops through, it makes the three Submission 1 plots (histogram, scatterplot vs vitamin D, boxplot by vitamin D status and outcome), prints them, optionally saves them, and returns them in a named list.
+plot_genes() function takes the following inputs: a data frame and a vector of one or more gene names. For each gene it loops through, it makes the three Submission 1 plots (histogram, scatterplot vs vitamin D, boxplot by vitamin D status and outcome) and prints them, optionally saves them, and returns them in a named list.
 
 ```{r function}
 # takes the input of a data frame, a vector of genes, into the figures directory
@@ -241,15 +241,17 @@ plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
 ## 7. Run the function on three genes
 
 ```{r run-function, fig.height = 5}
+# interested genes in the list
 genes_of_interest <- c("PTX3", "CXCR2", "RUNDC3A")
 
 # Set save = TRUE to save the 9 figures in figures folder
 # Set save = FALSE in final pdf/markdown because don't want to keep running
 # this over and over
+
+# takes the analysis_long data frame input created from step 3 and 4 as input
+# also takes list genes in previous line as input
 gene_plots <- plot_genes(analysis_long, genes_of_interest, save = FALSE)
 ```
 
 
-
-
-
+**AI use statement:** Claude (Anthropic) was used to help with str_removal for initial data cleaning and some GitHub debugging issues for function creation. Also consulted Claude for help specifically with including the ggsave portion in the function writing, and consulted google as well for ggsave arguments within the function. Most of the code remained the same as submission 1.
