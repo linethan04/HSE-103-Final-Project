@@ -1,0 +1,85 @@
+---
+title: "Submission 2: Plotting Function for PTX3, CXCR2, and RUNDC3A"
+output: 
+  pdf_document:
+      latex_engine: xelatex
+  
+date: "2026-11-1"
+author: Ethan Lin
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 7, fig.height = 5, dpi = 300)
+```
+
+## Variables of interest
+
+- **Genes:** *PTX3* (from Submission 1), *CXCR2*, and *RUNDC3A*
+- **Continuous covariate:** maternal baseline 25-hydroxyvitamin D (ng/mL)
+- **Categorical covariate 1:** pregnancy outcome (Normal vs Preeclampsia)
+- **Categorical covariate 2 (derived from continuous):** vitamin D status
+  (Deficient < 20, Insufficient 20-29.9, Sufficient 30+ ng/mL)
+
+```{r packages}
+# load needed library
+library(tidyverse)
+```
+
+## 1. Load the raw files
+
+```{r load}
+covar     <- read_csv("data/GSE85307_covar-1.csv")
+expr      <- read_csv("data/GSE85307_geneExpression.csv")
+geneNames <- read_csv("data/GSE85307_geneNames.csv")
+```
+
+## 2. Clean the covariate data (same steps as Submission 1)
+
+Each covariate value is stored as text such as `"bmi_kg/m2: 37.52"`, so keep only the part
+after `": "` and convert numbers to numeric.
+
+```{r clean-covar, results = "hide"}
+covar_clean <- covar |> 
+  # Rename first column name by position
+  rename(subjectID = 1) |> 
+  # For every column except the IDs, keep only the text after ": "; consulted
+  # the help of Claude for this step to help with str_removal, detecting patterns
+  mutate(across(-c(subjectID, geoID),
+                ~ str_remove(.x, "^.*: "))) |> 
+  # Convert the continuous variables from text to numeric
+  mutate(across(c(mat_age_yrs, 
+                  delivery_gestAge_wks, 
+                  sampleCollection_gestAge_wks,
+                  mat_BMI, 
+                  mat_vitD), 
+                as.numeric)) |> 
+  mutate(
+    # Pregnancy outcome as a factor, with normal and preeclampsia levels
+    preg_preeclampsia = factor(preg_preeclampsia, 
+                               levels = c("Normal", "Preeclampsia")),
+    # Turn asthma into a labeled factor, either 0 or 1
+    mat_asthma = factor(mat_asthma, 
+                        levels = c("0", "1"), 
+                        labels = c("Healthy", "Asthma")),
+    # convert to factor variable
+    batch_Microarray = factor(batch_Microarray),
+    # turn continuous mat_vitD to categorical vitD_status variable
+    # chose the intervals and cutoffs based off of existing clinical studies
+    # and standard medical practices
+    vitD_status = cut(mat_vitD,
+                      breaks = c(-Inf, 20, 30, Inf),
+                      right  = FALSE,   
+                      labels = c("Deficient (<20)", 
+                                 "Insufficient (20-29.9)", 
+                                 "Sufficient (30+)"))
+  )
+
+summary(covar_clean)
+count(covar_clean, preg_preeclampsia, vitD_status)
+
+```
+
+
+
+
