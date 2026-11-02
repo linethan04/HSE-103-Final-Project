@@ -77,9 +77,68 @@ covar_clean <- covar |>
 
 summary(covar_clean)
 count(covar_clean, preg_preeclampsia, vitD_status)
-
 ```
 
+## 3. Build a long data frame with all of the genes
 
+Unlike Submission 1 (one gene), the function needs a data frame that holds every
+gene, so it can pull out whichever genes it is given.
 
+```{r long-data, results = "hide"}
+expr_long <- expr |> 
+  # Probe ID column has no header; name it so it can be joined
+  rename(PROBEID = 1) |> 
+  # Attach gene names from the linker file
+  left_join(geneNames, by = "PROBEID") |> 
+  # convert to long format, so one row per gene per sample
+  pivot_longer(cols = starts_with("GSM"),
+               names_to  = "geoID",
+               values_to = "expression")
+
+# double check that every probe has a gene name, and no gene appears twice
+sum(is.na(expr_long$GENE))
+expr_long |>  
+  distinct(PROBEID, GENE) |>  
+  count(GENE) |>  
+  filter(n > 1)  |>  
+  nrow()
+```
+
+## 4. Merge with covariates and verify the match
+```{r merge}
+# check if set of sample IDs in both files?
+setequal(unique(expr_long$geoID), covar_clean$geoID)
+
+analysis_long <- covar_clean |> 
+  inner_join(expr_long, by = "geoID")
+
+# Expect 157 samples x 500 genes = 78,500 rows, with 157 unique samples
+# passed the check
+nrow(analysis_long)
+n_distinct(analysis_long$geoID)
+
+# Check if merged PTX3 value for one sample equals the raw file value
+analysis_long |> 
+  filter(geoID == "GSM2264346", GENE == "PTX3")  |> 
+  pull(expression)
+
+expr |>  
+  rename(PROBEID = 1)  |>  
+  filter(PROBEID == 8083594)  |>  
+  pull(GSM2264346)
+```
+
+## 5. Shared plot theme and colors (same from Submission 1)
+
+```{r theme, results = "hide"}
+# One theme for consistency across all plots; publication quality
+theme_pub <- theme_classic(base_size = 14) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5),
+        axis.title = element_text(face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(face = "bold"))
+
+# shared colors
+outcome_colors <- c("Normal" = "#4C72B0", "Preeclampsia" = "#C44E52")
+```
 
