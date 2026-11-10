@@ -24,11 +24,6 @@ This file produces every figure and table for the final LaTeX report.
 - **Categorical covariate 2 (derived from continuous):** vitamin D status
   (Deficient < 20, Insufficient 20-29.9, Sufficient 30+ ng/mL)
 
-```{r setup, include=FALSE}
-# set some requirements for figures
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 5, dpi = 300)
-```
-
 ```{r packages}
 library(tidyverse)   
 library(kableExtra)  # Latex summary table
@@ -443,3 +438,4 @@ p_treemap
 ggsave("figures/treemap_groups.png", p_treemap, width = 11, height = 5, dpi = 300)
 ```
 
+**AI use statement:** Claude (Anthropic) was used to help with str_removal for initial data cleaning and some GitHub debugging issues for function creation. Also consulted Claude for help specifically with including the ggsave portion in the function writing, and consulted google as well for ggsave arguments within the function. Most of the code remained the same as submission 1 and 2. Also, consulted Claude (Anthropic) for help in the treemap, and the annotations, in order to have annotations on each tile.
