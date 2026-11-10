@@ -271,3 +271,122 @@ genes_of_interest <- c("PTX3", "CXCR2", "RUNDC3A")
 # also takes list genes in previous line as input
 gene_plots <- plot_genes(analysis_long, genes_of_interest, save = FALSE)
 ```
+
+## 8. Summary statistics for the three genes
+
+Statistics cited in the Results section for each gene: median and SD of
+expression, Spearman correlation with vitamin D, and p-values for outcome
+(Wilcoxon) and vitamin D status (Kruskal-Wallis).
+
+```{r gene-stats}
+gene_stats <- analysis_long |>
+  filter(GENE %in% genes_of_interest) |>
+  group_by(GENE) |>
+  summarise(
+    median_expr = median(expression),
+    sd_expr     = sd(expression),
+    rho_vitD    = cor(expression, mat_vitD, method = "spearman"),
+    p_vitD      = cor.test(expression, mat_vitD, method = "spearman",
+                           exact = FALSE)$p.value,
+    p_outcome   = wilcox.test(expression ~ preg_preeclampsia)$p.value,
+    p_vitD_cat  = kruskal.test(expression ~ vitD_status)$p.value
+  )
+
+gene_stats |> mutate(across(where(is.numeric), ~ signif(.x, 3)))
+```
+
+## 9. Summary statistics for the table
+Three continuous covariates (vitamin D, maternal age, BMI) shown as mean (SD)
+and two categorical covariates (pregnancy outcome as the strata, vitamin D
+status) shown as n (%). P-values: Welch t-test for continuous covariates and
+chi-square test for vitamin D status.
+
+```{r table1-continuous}
+# mean (SD) of each continuous covariate for all women (Overall column)
+covar_clean |> 
+  summarise(across(c(mat_vitD, mat_age_yrs, mat_BMI),
+                   list(mean = mean, sd = sd))) |> 
+  mutate(across(everything(), ~ round(.x, 1)))
+
+# mean (SD) of each continuous covariate by pregnancy outcome
+covar_clean |> 
+  group_by(preg_preeclampsia) |> 
+  summarise(across(c(mat_vitD, mat_age_yrs, mat_BMI),
+                   list(mean = mean, sd = sd))) |> 
+  mutate(across(where(is.numeric), ~ round(.x, 1)))
+
+# p-values comparing normal vs preeclampsia (Welch t-test)
+t.test(mat_vitD    ~ preg_preeclampsia, data = covar_clean)$p.value
+t.test(mat_age_yrs ~ preg_preeclampsia, data = covar_clean)$p.value
+t.test(mat_BMI     ~ preg_preeclampsia, data = covar_clean)$p.value
+```
+
+```{r table1-categorical}
+# n (%) in each vitamin D status for all women (Overall column)
+covar_clean |> 
+  count(vitD_status) |> 
+  mutate(percent = round(100 * n / sum(n)))
+
+# n (%) in each vitamin D status within each pregnancy outcome
+covar_clean |> 
+  count(preg_preeclampsia, vitD_status) |> 
+  group_by(preg_preeclampsia) |> 
+  mutate(percent = round(100 * n / sum(n)))
+
+# p-value: does vitamin D status differ by outcome? (chi-square test)
+chisq.test(table(covar_clean$vitD_status,
+                 covar_clean$preg_preeclampsia))$p.value
+```
+
+## 10. Heatmap of 10 genes with tracking bars
+
+The three genes of interest plus the seven most variable remaining genes. Each
+gene is z-scored across samples so genes with different expression levels share
+one color scale.
+
+```{r}
+# 7 most variable genes, not counting the 3 genes of interest
+top_var_genes <- analysis_long |> 
+  filter(!GENE %in% genes_of_interest) |> 
+  group_by(GENE) |> 
+  summarise(variance = var(expression)) |> 
+  arrange(desc(variance)) |> 
+  slice_head(n = 7) |> 
+  pull(GENE)
+
+heatmap_genes <- c(genes_of_interest, top_var_genes)
+```
+
+```{r}
+# matrix with genes as rows and samples as columns
+heat_mat <- analysis_long |> 
+  filter(GENE %in% heatmap_genes) |> 
+  select(GENE, geoID, expression) |> 
+  pivot_wider(names_from = geoID, values_from = expression) |> 
+  column_to_rownames("GENE") |> 
+  as.matrix()
+
+# tracking bars: one row per sample, row names = sample IDs
+tracking <- covar_clean |> 
+  select(geoID, Outcome = preg_preeclampsia, `Vitamin D` = vitD_status) |> 
+  column_to_rownames("geoID")
+
+# colors for the tracking bars
+tracking_colors <- list(
+  Outcome     = outcome_colors,
+  `Vitamin D` = c("Deficient (<20)"        = "#F2C14E",
+                  "Insufficient (20-29.9)" = "#9BBF85",
+                  "Sufficient (30+)"       = "#3A7D7C"))
+
+heat <- pheatmap(heat_mat,
+                 scale = "row", # z-score each gene
+                 clustering_method = "ward.D2",  # cluster genes and samples
+                 annotation_col = tracking, # tracking bars
+                 annotation_colors = tracking_colors,
+                 show_colnames = FALSE, # 157 sample IDs unreadable
+                 main = "Expression of 10 Genes (row z-scores)")
+
+# save a copy
+ggsave("figures/heatmap_10genes.png", heat, width = 9, height = 5.5, dpi = 300)
+```
+
