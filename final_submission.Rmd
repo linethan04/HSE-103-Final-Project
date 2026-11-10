@@ -390,3 +390,56 @@ heat <- pheatmap(heat_mat,
 ggsave("figures/heatmap_10genes.png", heat, width = 9, height = 5.5, dpi = 300)
 ```
 
+## 11. Additional plot: treemap of group sizes and expression
+
+A treemap splits a rectangle into tiles whose area is proportional to a count.
+Here each tile is one group of women (pregnancy outcome x vitamin D status), so
+the tile area shows how many women are in that group. Tile color shows how
+that group's median expression compares with the gene's overall median
+(red = higher, blue = lower). 
+
+```{r treemap, fig.width = 11, fig.height = 5}
+library(treemapify)
+
+treemap_df <- analysis_long |> 
+  filter(GENE %in% genes_of_interest) |> 
+  # expression relative to each gene's overall median, so all 3 genes
+  # can share one color scale
+  group_by(GENE) |> 
+  mutate(rel_expr = expression - median(expression)) |> 
+  # one row per gene x outcome x vitamin D status group
+  group_by(GENE, preg_preeclampsia, vitD_status) |> 
+  summarise(n = n(), median_rel = median(rel_expr), .groups = "drop") |> 
+  mutate(GENE  = factor(GENE, levels = genes_of_interest), # panel order
+         label = paste0(vitD_status, "\nn = ", n))  # tile label
+```
+
+
+```{r}
+p_treemap <- ggplot(treemap_df, aes(area = n, fill = median_rel, label = label,
+                                    subgroup = preg_preeclampsia)) +
+  geom_treemap(color = "white") + # one tile per group
+  geom_treemap_subgroup_border(color = "black", size = 3) + # outline each outcome
+  geom_treemap_subgroup_text(place = "bottom", size = 12, # outcome label
+                             fontface = "bold", alpha = 0.8) +
+  geom_treemap_text(place = "topleft", size = 9, reflow = TRUE) + # group label
+  # blue = lower, white = same, red = higher than the gene's median
+  scale_fill_gradient2(low = "#2C5D8A", mid = "#F7F7F7", high = "#B2343A",
+                       midpoint = 0, limits = c(-0.35, 0.35),
+                       name = "Group median minus\ngene median (log2)") +
+  facet_wrap(~ GENE) + # one panel per gene
+  labs(title = "Group Sizes and Relative Expression by Outcome and Vitamin D Status",
+       caption = paste("Tile area is the number of women;",
+                       "color is group median minus the gene's overall median")) +
+  theme_pub +
+  theme(strip.text = element_text(face = "bold", size = 13),
+        strip.background = element_blank(),
+        plot.title = element_text(size = 14),
+        legend.key.width = unit(1.5, "cm"))
+
+p_treemap
+
+# save the figure
+ggsave("figures/treemap_groups.png", p_treemap, width = 11, height = 5, dpi = 300)
+```
+
