@@ -440,7 +440,16 @@ ggsave("figures/treemap_groups.png", p_treemap, width = 11, height = 5, dpi = 30
 ## 12. Package versions used
 ```{r}
    R.version.string
-   sapply(c("tidyverse","ggplot2","dplyr","tidyr","readr","stringr","pheatmap","treemapify","knitr","rmarkdown"), \(p) as.character(packageVersion(p)))
+   sapply(c("tidyverse",
+            "ggplot2",
+            "dplyr",
+            "tidyr",
+            "readr",
+            "stringr",
+            "pheatmap",
+            "treemapify",
+            "knitr",
+            "rmarkdown"), \(p) as.character(packageVersion(p)))
 ```
 
 **AI use statement:** Claude (Anthropic) was used to help with str_removal for initial data cleaning and some GitHub debugging issues for function creation. Also consulted Claude for help specifically with including the ggsave portion in the function writing, and consulted google as well for ggsave arguments within the function. Most of the code remained the same as submission 1 and 2. Also, consulted Claude (Anthropic) for help in the treemap, the annotations (in order to have annotations on each tile), and for showing what packages were used.
