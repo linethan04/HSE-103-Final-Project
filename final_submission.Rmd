@@ -172,7 +172,7 @@ plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
     gene_df <- df |>  
       filter(GENE == gene)
     # Axis label reused by all three plots
-    y_lab <- paste(gene, "expression (log2 intensity)")
+    y_lab <- bquote(bolditalic(.(gene)) * bold(" expression (log2 intensity)"))
     
     # Plot 1: histogram showing distribution of expression; essentially same
     # code as submission 1
@@ -185,7 +185,7 @@ plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
                  linetype = "dashed", color = "#1F2A37", linewidth = 0.6) +
       # Bars sit directly on the x-axis, with some space on top
       scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-      labs(title = paste("Distribution of", gene, "Expression"),
+      labs(title = bquote(bold("Distribution of ") * bolditalic(.(gene)) * bold(" Expression")),
            x = y_lab,
            y = "Number of samples",
            caption = paste0("Dashed line = median; n = ", nrow(gene_df))) +
@@ -199,7 +199,7 @@ plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
       # Overall linear trend with 95% confidence band
       geom_smooth(method = "lm", color = "black", se = TRUE) +
       scale_color_manual(values = outcome_colors) +
-      labs(title = paste("Maternal Vitamin D vs", gene, "Expression"),
+      labs(title = bquote(bold("Maternal Vitamin D vs ") * bolditalic(.(gene)) * bold(" Expression")),
            x = "Maternal 25(OH)D at baseline (ng/mL)",
            y = y_lab,
            color = "Pregnancy outcome") +
@@ -218,7 +218,7 @@ plot_genes <- function(df, genes, save = FALSE, out_dir = "figures") {
                  size = 1.2, alpha = 0.6) +
       scale_fill_manual(values = outcome_colors) +
       # edit in that particular looped gene
-      labs(title = paste(gene, "Expression by Vitamin D Status and Outcome"),
+      labs(title = bquote(bolditalic(.(gene)) * bold(" Expression by Vitamin D Status and Outcome")),
            x = "Maternal vitamin D status (ng/mL)",
            y = y_lab,
            fill = "Pregnancy outcome") +
